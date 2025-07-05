@@ -58,10 +58,13 @@ find_package(zstd MODULE REQUIRED) # MODULE because zstd::zstd is not defined up
 target_link_libraries(zarchive PRIVATE zstd::zstd ${STATIC_TOOL_FLAG})
 
 # standalone executable
-add_executable (zarchiveTool src/main.cpp)
+add_executable (zarchiveTool src/main.cpp ${SOURCE_FILES_LIB})
 set_property(TARGET zarchiveTool PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_target_properties(zarchiveTool PROPERTIES OUTPUT_NAME "zarchive")
-target_link_libraries(zarchiveTool PRIVATE zarchive ${STATIC_TOOL_FLAG})
+target_include_directories(zarchiveTool
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(zarchiveTool PRIVATE zstd ${STATIC_TOOL_FLAG})
 
 # install
 install(DIRECTORY include/zarchive/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/zarchive" FILES_MATCHING PATTERN "zarchive*.h")
