@@ -20,9 +20,17 @@ uint8_t za_is_file(za_handle h, const char* p){ return static_cast<za_ctx*>(h)->
                                         static_cast<za_ctx*>(h)->reader->LookUp(p,true,false)); }
 uint64_t za_size(za_handle h,const char* p)   { return static_cast<za_ctx*>(h)->reader->GetFileSize(
                                         static_cast<za_ctx*>(h)->reader->LookUp(p,true,false)); }
-uint64_t za_read(za_handle h,const char* p,uint64_t off,uint64_t len,void* buf){
-    return static_cast<za_ctx*>(h)->reader->ReadFromFile(
-        static_cast<za_ctx*>(h)->reader->LookUp(p,true,false),off,len,buf);
+int64_t za_read(za_handle h,const char* p,uint64_t off,uint64_t len,void* buf){
+    auto* r = static_cast<za_ctx*>(h)->reader;
+    ZArchiveNodeHandle node = r->LookUp(p,true,false);
+    if(!r->IsFile(node))
+        return -1; /* IsFile bounds-checks, so this covers an invalid handle */
+    /* Resolve the ambiguity here, where the size is known: past the end is EOF,
+       and nothing read from within the file is a decompression failure. */
+    if(off >= r->GetFileSize(node))
+        return 0;
+    uint64_t got = r->ReadFromFile(node,off,len,buf);
+    return got == 0 ? -1 : (int64_t)got;
 }
 
 struct dir_cb_ctx{ za_iter_cb cb; void* u; const char* base; };

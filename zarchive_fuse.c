@@ -58,7 +58,7 @@ static int z_open(const char* path, struct fuse_file_info* fi){
 
 static int z_read(const char* path, char* buf, size_t size, off_t off,
                   struct fuse_file_info* fi){
-    uint64_t got = za_read(g_za, path, off, size, buf);
+    int64_t got = za_read(g_za, path, off, size, buf);
     return got < 0 ? -EIO : (int)got;
 }
 
