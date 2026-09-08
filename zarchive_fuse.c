@@ -26,6 +26,20 @@ static int z_getattr(const char* path, struct stat* st, struct fuse_file_info* f
     return 0;
 }
 
+/* State for z_fill_one. Passed through the user pointer za_list already
+   takes: a nested function capturing these would need a stack trampoline,
+   which musl's non-executable pthread stacks refuse. */
+struct z_fill_ctx {
+    void* buf;
+    fuse_fill_dir_t filler;
+};
+
+static void z_fill_one(const char* name, int is_dir, void* u){
+    (void)is_dir;
+    struct z_fill_ctx* c = (struct z_fill_ctx*)u;
+    c->filler(c->buf, name, NULL, 0, 0);
+}
+
 static int z_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
                      off_t off, struct fuse_file_info* fi,
                      enum fuse_readdir_flags flags){
@@ -33,11 +47,8 @@ static int z_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
     filler(buf, ".", NULL, 0, 0);
     filler(buf, "..", NULL, 0, 0);
 
-    void list_cb(const char* name, int is_dir, void* u){
-        (void)is_dir; fuse_fill_dir_t f = *(fuse_fill_dir_t*)u;
-        f(buf, name, NULL, 0, 0);
-    }
-    za_list(g_za, path, list_cb, &filler);
+    struct z_fill_ctx ctx = { buf, filler };
+    za_list(g_za, path, z_fill_one, &ctx);
     return 0;
 }
 
